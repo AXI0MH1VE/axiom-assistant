@@ -1,0 +1,41 @@
+[package]
+name = "axiom-assistant"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Module A: Probabilistic
+candle-core = { version = "0.8", features = ["cuda"] }
+candle-transformers = "0.8"
+candle-nn = "0.8"
+tokenizers = "0.21"
+hf-hub = "0.3"
+
+# Module B: Deterministic
+swipl = "0.3"
+evalexpr = "11.3"
+
+# Module C: Neuro-Symbolic
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# IPC & Orchestration
+tokio = { version = "1.42", features = ["full"] }
+crossbeam = "0.8"
+
+# UI (Tauri 2.0)
+tauri = { version = "2.1", features = ["protocol-asset"] }
+
+# AxiomEngine Integration
+wgpu = "23.0"
+bytemuck = { version = "1.20", features = ["derive"] }
+glam = "0.29"
+
+[dependencies.tauri-plugin-shell]
+version = "2.0"
+
+# Utility crates for the local dev/demo implementation
+anyhow = "1.0"
+futures = "0.3"
+tokio-stream = "0.1"
+regex = "1.7"
