@@ -168,15 +168,23 @@ pub struct OrchestratorStatsSnapshot {
 
 /// Extract numerical claims from text for verification
 fn extract_claims(text: &str) -> Vec<String> {
-    let re = regex::Regex::new(r"\d+(?:\.\d+)?(?:\s*[+\-*/]\s*\d+(?:\.\d+)?)+").unwrap();
-    let mut claims: Vec<String> = re.find_iter(text)
+    use once_cell::sync::Lazy;
+    
+    static EXPR_RE: Lazy<regex::Regex> = Lazy::new(|| {
+        regex::Regex::new(r"\d+(?:\.\d+)?(?:\s*[+\-*/]\s*\d+(?:\.\d+)?)+").unwrap()
+    });
+    
+    static NUM_RE: Lazy<regex::Regex> = Lazy::new(|| {
+        regex::Regex::new(r"\d+(?:\.\d+)?").unwrap()
+    });
+    
+    let mut claims: Vec<String> = EXPR_RE.find_iter(text)
         .map(|m| m.as_str().to_string())
         .collect();
     
     // Also extract simple numbers as potential claims
     if claims.is_empty() {
-        let num_re = regex::Regex::new(r"\d+(?:\.\d+)?").unwrap();
-        claims = num_re.find_iter(text)
+        claims = NUM_RE.find_iter(text)
             .take(5) // Limit to avoid excessive verification
             .map(|m| m.as_str().to_string())
             .collect();

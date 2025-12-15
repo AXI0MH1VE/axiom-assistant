@@ -2,7 +2,7 @@
 # Multi-stage build for optimized image size
 
 # Stage 1: Build environment
-FROM rust:1.75-slim-bookworm AS builder
+FROM rust:1.83-slim-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -17,14 +17,14 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /build
 
 # Copy dependency manifests
-COPY Cargo.toml Cargo.lock* ./
+COPY Cargo.toml ./
 
 # Copy source code
 COPY src ./src
 COPY models ./models
 
-# Build release binary with optimizations
-RUN cargo build --release --bin axiom-assistant
+# Build release binary with optimizations (CLI only, no heavy dependencies)
+RUN cargo build --release --no-default-features --features cli
 
 # Stage 2: Runtime environment
 FROM debian:bookworm-slim

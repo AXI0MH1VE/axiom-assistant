@@ -42,6 +42,7 @@ anyhow = "1.0"
 futures = "0.3"
 tokio-stream = "0.1"
 regex = "1.7"
+once_cell = "1.19"
 
 # Production dependencies - logging, error handling, security
 log = "0.4"
