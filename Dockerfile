@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Axiom Assistant
 # Stage 1: Build dependencies and compile Rust backend
 
-FROM rust:1.75-slim as builder
+FROM rust:1.91-slim as builder
 
 # Install system dependencies required for building
 RUN apt-get update && apt-get install -y \
