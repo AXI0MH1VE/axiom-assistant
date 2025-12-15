@@ -21,8 +21,13 @@ struct CompletionResponse {
     completed: bool,
 }
 
-/// Initialize Tauri application with command handlers
-pub fn init_tauri() -> Result<(), Box<dyn std::error::Error>> {
+/// Initialize Tauri application with command handlers (backward-compatible version)
+pub fn init_tauri() {
+    try_init_tauri().unwrap();
+}
+
+/// Initialize Tauri application with command handlers (returns Result)
+pub fn try_init_tauri() -> Result<(), Box<dyn std::error::Error>> {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
