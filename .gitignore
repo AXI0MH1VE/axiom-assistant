@@ -1,0 +1,59 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Build artifacts
+dist/
+build/
+
+# UI
+ui/node_modules/
+ui/dist/
+ui/.next/
+ui/out/
+ui/build/
+ui/.cache/
+ui/coverage/
+
+# Models (large files)
+models/*.bin
+models/*.gguf
+models/*.safetensors
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# Test artifacts
+*.profdata
+*.profraw
+
+# Backup files
+*.bak
+*~
