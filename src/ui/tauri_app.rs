@@ -1,5 +1,7 @@
 // Production-grade Tauri app bridge with full Orchestrator integration
+#[cfg(feature = "tauri")]
 use tauri::{AppHandle, Manager};
+
 use tokio::sync::Mutex;
 use std::sync::Arc;
 use crate::ipc::orchestrator::Orchestrator;
@@ -34,6 +36,7 @@ pub async fn init_tauri() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(feature = "tauri")]
 /// Tauri command to send a message and stream tokens back
 #[tauri::command]
 async fn send_message(
@@ -65,6 +68,7 @@ async fn send_message(
     Ok(full_response)
 }
 
+#[cfg(feature = "tauri")]
 /// Tauri command to get system status
 #[tauri::command]
 async fn get_status(
@@ -85,6 +89,7 @@ pub struct SystemStatus {
     pub version: String,
 }
 
+#[cfg(feature = "tauri")]
 /// Register all Tauri commands
 pub fn get_tauri_commands() -> impl Fn(tauri::Invoke) {
     tauri::generate_handler![send_message, get_status]

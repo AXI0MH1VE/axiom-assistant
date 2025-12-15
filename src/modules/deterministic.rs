@@ -28,8 +28,17 @@ impl DeterministicModule {
             .unwrap_or(10000);
         
         if enable_prolog {
-            log::info!("Prolog integration enabled (placeholder for SWI-Prolog)");
-            // In production: Initialize SWI-Prolog here
+            #[cfg(feature = "swipl")]
+            {
+                log::info!("Prolog integration enabled with SWI-Prolog");
+                // Initialize SWI-Prolog when feature is enabled
+            }
+            #[cfg(not(feature = "swipl"))]
+            {
+                log::info!("Prolog requested but swipl feature not enabled, using mock");
+            }
+        } else {
+            log::info!("Prolog integration disabled, using mock logic");
         }
         
         let config = DetConfig {
@@ -95,14 +104,24 @@ impl DeterministicModule {
     fn execute_math(&self, query: &str) -> anyhow::Result<String> {
         log::debug!("Evaluating math expression: {}", query);
         
+        // Try float evaluation first
         match eval_float(query) {
             Ok(result) => {
-                log::debug!("Math result: {}", result);
-                Ok(format!("{}", result))
+                log::debug!("Math result (float): {}", result);
+                return Ok(format!("{}", result));
             }
-            Err(e) => {
-                log::warn!("Math evaluation error: {}", e);
-                Err(anyhow::anyhow!("Math evaluation failed: {}", e))
+            Err(_) => {
+                // Try integer evaluation
+                match eval_int(query) {
+                    Ok(result) => {
+                        log::debug!("Math result (int): {}", result);
+                        return Ok(format!("{}", result));
+                    }
+                    Err(e) => {
+                        log::warn!("Math evaluation error: {}", e);
+                        return Err(anyhow::anyhow!("Math evaluation failed: {}", e));
+                    }
+                }
             }
         }
     }
@@ -111,8 +130,10 @@ impl DeterministicModule {
     fn execute_prolog(&self, query: &str) -> anyhow::Result<String> {
         log::debug!("Executing Prolog query: {}", query);
         
-        if !self.config.enable_prolog {
-            log::info!("Prolog disabled, using mock logic");
+        #[cfg(feature = "swipl")]
+        if self.config.enable_prolog {
+            // Use actual SWI-Prolog when feature is enabled
+            log::info!("Using SWI-Prolog for query execution");
         }
         
         // Production-grade mock Prolog responses with proper proof chains

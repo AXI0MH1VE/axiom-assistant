@@ -87,21 +87,21 @@ impl Scene {
         if parent_id == 0 {
             self.root.children.push(new_node);
         } else {
-            self.add_node_recursive(&mut self.root, parent_id, new_node)?;
+            Self::add_node_recursive_static(&mut self.root, parent_id, new_node)?;
         }
 
         self.objects.insert(name, new_id);
         Ok(new_id)
     }
 
-    fn add_node_recursive(&self, current: &mut SceneNode, parent_id: usize, node: SceneNode) -> Result<(), String> {
+    fn add_node_recursive_static(current: &mut SceneNode, parent_id: usize, node: SceneNode) -> Result<(), String> {
         if current.id == parent_id {
             current.children.push(node);
             return Ok(());
         }
 
         for child in &mut current.children {
-            if let Ok(_) = self.add_node_recursive(child, parent_id, node.clone()) {
+            if let Ok(_) = Self::add_node_recursive_static(child, parent_id, node.clone()) {
                 return Ok(());
             }
         }

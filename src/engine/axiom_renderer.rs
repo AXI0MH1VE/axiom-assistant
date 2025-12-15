@@ -1,7 +1,8 @@
-use wgpu::{Device, Queue, Instance, Adapter, Surface, SurfaceConfiguration};
-use std::sync::Arc;
+#[cfg(feature = "wgpu")]
+use wgpu::{Device, Queue, Instance, Adapter};
 
 /// Production-grade AxiomEngine with full wgpu rendering pipeline
+#[cfg(feature = "wgpu")]
 pub struct AxiomEngine {
     instance: Instance,
     device: Device,
@@ -9,11 +10,13 @@ pub struct AxiomEngine {
     render_state: RenderState,
 }
 
+#[cfg(feature = "wgpu")]
 struct RenderState {
     frame_count: u64,
     last_scene: String,
 }
 
+#[cfg(feature = "wgpu")]
 impl AxiomEngine {
     /// Initialize wgpu instance, adapter, device, and queue for deterministic rendering
     pub async fn new() -> anyhow::Result<Self> {
@@ -127,6 +130,7 @@ impl AxiomEngine {
 }
 
 /// Statistics about rendering state
+#[cfg(feature = "wgpu")]
 pub struct RenderStats {
     pub frame_count: u64,
     pub device_type: String,
