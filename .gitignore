@@ -1,0 +1,33 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (for UI)
+node_modules/
+dist/
+
+# Environment variables
+.env
+.env.local
+
+# Models directory (large binary files)
+models/*.gguf
+models/*.bin
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
