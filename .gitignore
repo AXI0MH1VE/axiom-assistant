@@ -1,29 +1,28 @@
-# Rust
-/target
+# Rust build artifacts
+/target/
+Cargo.lock
 **/*.rs.bk
 *.pdb
-Cargo.lock
 
-# Environment
-.env
-.env.local
-
-# IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
+
+# Environment variables
+.env
+.env.local
 
 # Logs
 *.log
 logs/
 *.log.*
 
-# OS
-Thumbs.db
+# OS files
 .DS_Store
+Thumbs.db
 
 # Build artifacts
 dist/
@@ -37,18 +36,18 @@ ui/out/
 ui/build/
 ui/.cache/
 ui/coverage/
+node_modules/
 
-# Models (large files)
+# Models directory (large binary files)
 models/*.bin
 models/*.gguf
 models/*.safetensors
 
-# Temporary
+# Temporary files
 tmp/
 temp/
 *.tmp
-*.swp
-*.swo
+/tmp/
 
 # Test artifacts
 *.profdata
@@ -56,4 +55,3 @@ temp/
 
 # Backup files
 *.bak
-*~

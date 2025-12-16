@@ -56,7 +56,8 @@ USER axiom
 ENV RUST_LOG=info \
     AXIOM_MAX_TOKENS=2048 \
     AXIOM_TEMPERATURE=0.7 \
-    AXIOM_MAX_QUERY_LENGTH=10000
+    AXIOM_MAX_QUERY_LENGTH=10000 \
+    RUST_BACKTRACE=1
 
 # Expose port for future web interface (currently CLI only)
 EXPOSE 8080
