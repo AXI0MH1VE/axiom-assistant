@@ -9,4 +9,6 @@ pub mod ipc;
 
 pub use modules::{ProbabilisticModule, DeterministicModule, NeuroSymbolicRouter};
 pub use ipc::orchestrator::Orchestrator;
+
+#[cfg(feature = "wgpu")]
 pub use engine::{AxiomEngine, Scene};
