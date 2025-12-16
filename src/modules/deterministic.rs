@@ -104,15 +104,19 @@ impl DeterministicModule {
     fn execute_math(&self, query: &str) -> anyhow::Result<String> {
         log::debug!("Evaluating math expression: {}", query);
         
+        // Extract actual math expression from queries like "Calculate 10 + 5"
+        let math_expr = extract_math_expression(query);
+        log::debug!("Extracted math expression: {}", math_expr);
+        
         // Try float evaluation first
-        match eval_float(query) {
+        match eval_float(&math_expr) {
             Ok(result) => {
                 log::debug!("Math result (float): {}", result);
                 return Ok(format!("{}", result));
             }
             Err(_) => {
                 // Try integer evaluation
-                match eval_int(query) {
+                match eval_int(&math_expr) {
                     Ok(result) => {
                         log::debug!("Math result (int): {}", result);
                         return Ok(format!("{}", result));
@@ -182,6 +186,30 @@ fn looks_like_logic(s: &str) -> bool {
     logic_keywords.iter().any(|&kw| s.to_lowercase().contains(kw))
         || s.contains(":-")
         || s.contains("?-")
+}
+
+/// Extract the mathematical expression from a query string
+/// Handles queries like "Calculate 10 + 5" -> "10 + 5"
+fn extract_math_expression(query: &str) -> String {
+    // Remove common prefix words
+    let prefixes = ["calculate", "solve", "compute", "evaluate", "what is"];
+    let mut expr = query.to_lowercase();
+    
+    for prefix in &prefixes {
+        if expr.starts_with(prefix) {
+            expr = expr[prefix.len()..].trim().to_string();
+            break;
+        }
+    }
+    
+    // If we didn't find a prefix, return the original query
+    if expr.is_empty() {
+        query.to_string()
+    } else {
+        // Return the extracted expression with original case for numbers/operators
+        let start_idx = query.len() - expr.len();
+        query[start_idx..].trim().to_string()
+    }
 }
 
 #[derive(Serialize, Deserialize)]
