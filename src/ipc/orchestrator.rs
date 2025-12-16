@@ -3,166 +3,190 @@ use crate::modules::probabilistic::ProbabilisticModule;
 use crate::modules::deterministic::DeterministicModule;
 use crate::modules::neuro_symbolic::{NeuroSymbolicRouter, Intent};
 
-/// Orchestrator coordinates the three main modules to process user queries.
-/// 
-/// The orchestrator:
-/// 1. Uses the router to classify query intent
-/// 2. Delegates to appropriate module(s)
-/// 3. Streams results back to the user
-/// 4. Performs verification when applicable (Hybrid mode)
-/// 
-/// This is the main entry point for query processing.
+/// Production-grade orchestrator with comprehensive error handling and logging
 pub struct Orchestrator {
-    /// Probabilistic/LLM module for creative reasoning
     pub prob_module: ProbabilisticModule,
-    /// Deterministic module for logic and math
     pub det_module: DeterministicModule,
-    /// Router for intent classification
     pub router: NeuroSymbolicRouter,
+    pub stats: OrchestratorStats,
+}
+
+#[derive(Default)]
+pub struct OrchestratorStats {
+    pub queries_processed: std::sync::atomic::AtomicU64,
+    pub creative_queries: std::sync::atomic::AtomicU64,
+    pub logical_queries: std::sync::atomic::AtomicU64,
+    pub hybrid_queries: std::sync::atomic::AtomicU64,
 }
 
 impl Orchestrator {
-    /// Create a new orchestrator with initialized modules
-    /// 
-    /// # Arguments
-    /// 
-    /// * `prob` - Initialized probabilistic module
-    /// * `det` - Initialized deterministic module
-    /// * `router` - Intent classification router
-    pub fn new(
-        prob: ProbabilisticModule,
-        det: DeterministicModule,
-        router: NeuroSymbolicRouter
-    ) -> Self {
-        Self {
-            prob_module: prob,
-            det_module: det,
+    pub fn new(prob: ProbabilisticModule, det: DeterministicModule, router: NeuroSymbolicRouter) -> Self {
+        log::info!("Orchestrator initialized");
+        Self { 
+            prob_module: prob, 
+            det_module: det, 
             router,
+            stats: OrchestratorStats::default(),
         }
     }
 
-    /// Process a user query and return a stream of response tokens.
-    /// 
-    /// The processing flow:
-    /// 1. Classify intent (Creative, Logical, or Hybrid)
-    /// 2. Route to appropriate module(s)
-    /// 3. Stream results back incrementally
-    /// 4. For Hybrid: verify LLM output with deterministic checks
-    /// 
-    /// # Arguments
-    /// 
-    /// * `query` - The user's input query
-    /// 
-    /// # Returns
-    /// 
-    /// A `BoxStream` that emits response tokens as strings
-    /// 
-    /// # Example
-    /// 
-    /// ```rust,no_run
-    /// use futures::StreamExt;
-    /// 
-    /// async fn process(orchestrator: &Orchestrator) {
-    ///     let mut stream = orchestrator.process_query("Calculate 2 + 2").await;
-    ///     while let Some(token) = stream.next().await {
-    ///         print!("{}", token);
-    ///     }
-    /// }
-    /// ```
+    /// Process a query and return a boxed stream of token strings
+    /// Implements neuro-symbolic routing with full error recovery
     pub async fn process_query(&self, query: &str) -> BoxStream<'static, String> {
+        if query.is_empty() {
+            log::warn!("Empty query received");
+            return stream::once(async { "[error] Query cannot be empty".to_string() }).boxed();
+        }
+        
+        if query.len() > 50000 {
+            log::warn!("Query too long: {} chars", query.len());
+            return stream::once(async { "[error] Query exceeds maximum length".to_string() }).boxed();
+        }
+        
+        // Classify intent
         let intent = self.router.classify_intent(query);
+        log::info!("Query classified as: {:?}", intent);
+        
+        // Update statistics
+        self.stats.queries_processed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         
         match intent {
             Intent::Creative => {
-                // Pure LLM generation with token streaming
-                let stream = self.prob_module.stream_tokens(query).await;
-                stream.boxed()
+                self.stats.creative_queries.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                self.handle_creative(query).await
             }
-            
             Intent::Logical => {
-                // Deterministic evaluation (math/logic)
-                let result = self.det_module
-                    .execute_logic(query)
-                    .unwrap_or_else(|e| format!("[Error] {}", e));
-                stream::once(async move { result }).boxed()
+                self.stats.logical_queries.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                self.handle_logical(query).await
             }
-            
             Intent::Hybrid => {
-                // Hybrid: LLM generation + deterministic verification
-                self.process_hybrid_query(query).await
+                self.stats.hybrid_queries.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                self.handle_hybrid(query).await
             }
         }
     }
-
-    /// Process a hybrid query requiring both LLM and verification
-    async fn process_hybrid_query(&self, query: &str) -> BoxStream<'static, String> {
-        // Stream LLM tokens
-        let llm_stream = self.prob_module.stream_tokens(query).await;
+    
+    /// Handle creative queries with LLM streaming
+    async fn handle_creative(&self, query: &str) -> BoxStream<'static, String> {
+        log::debug!("Processing creative query");
+        let s = self.prob_module.stream_tokens(query).await;
+        s.map(|t| t).boxed()
+    }
+    
+    /// Handle logical queries with deterministic execution
+    async fn handle_logical(&self, query: &str) -> BoxStream<'static, String> {
+        log::debug!("Processing logical query");
         
-        // Get full response for verification
-        let draft_full = self.prob_module
-            .infer(query)
-            .await
-            .unwrap_or_else(|_| "[Draft generation failed]".to_string());
-
-        // Extract verifiable claims (numbers, expressions)
-        let claims = extract_claims(&draft_full);
-        
-        // Build verification results
-        let mut verification = String::new();
-        if !claims.is_empty() {
-            verification.push_str("\n\n[Verification]\n");
-            for claim in claims {
-                match self.det_module.execute_logic(&claim) {
-                    Ok(v) => {
-                        verification.push_str(&format!("✓ {} = {}\n", claim, v));
-                    }
-                    Err(e) => {
-                        verification.push_str(&format!("✗ {}: {}\n", claim, e));
-                    }
-                }
+        match self.det_module.execute_logic(query) {
+            Ok(result) => {
+                log::debug!("Logical query succeeded: {} chars", result.len());
+                stream::once(async move { result }).boxed()
+            }
+            Err(e) => {
+                log::error!("Logical query failed: {}", e);
+                stream::once(async move { 
+                    format!("[deterministic error] {}", e) 
+                }).boxed()
             }
         }
-
-        // Create verification stream
-        let verification_stream = stream::once(async move { verification });
-
-        // Chain LLM stream with verification stream
-        llm_stream.chain(verification_stream).boxed()
+    }
+    
+    /// Handle hybrid queries with LLM draft + deterministic verification
+    async fn handle_hybrid(&self, query: &str) -> BoxStream<'static, String> {
+        log::debug!("Processing hybrid query");
+        
+        // Get LLM stream
+        let llm_stream = self.prob_module.stream_tokens(query).await;
+        
+        // Get full draft for verification
+        let draft_result = self.prob_module.infer(query).await;
+        
+        match draft_result {
+            Ok(draft_full) => {
+                log::debug!("LLM draft generated: {} chars", draft_full.len());
+                
+                // Extract and verify claims
+                let claims = extract_claims(&draft_full);
+                log::debug!("Extracted {} claims for verification", claims.len());
+                
+                let mut verification = String::new();
+                let mut verified_count = 0;
+                let mut failed_count = 0;
+                
+                for claim in claims.iter() {
+                    match self.det_module.execute_logic(claim) {
+                        Ok(v) => {
+                            verification.push_str(&format!("✓ Claim: {} → {}\n", claim, v));
+                            verified_count += 1;
+                        }
+                        Err(e) => {
+                            verification.push_str(&format!("✗ Claim: {} → Error: {}\n", claim, e));
+                            failed_count += 1;
+                        }
+                    }
+                }
+                
+                if verified_count > 0 || failed_count > 0 {
+                    verification = format!(
+                        "\n[Verification Results: {} verified, {} failed]\n{}", 
+                        verified_count, failed_count, verification
+                    );
+                }
+                
+                log::debug!("Verification complete: {} verified, {} failed", verified_count, failed_count);
+                
+                let verification_stream = stream::once(async move { verification });
+                llm_stream.map(|t| t).chain(verification_stream).boxed()
+            }
+            Err(e) => {
+                log::error!("Failed to generate draft: {}", e);
+                stream::once(async move { 
+                    format!("[error] Failed to process hybrid query: {}", e) 
+                }).boxed()
+            }
+        }
+    }
+    
+    /// Get orchestrator statistics
+    pub fn get_stats(&self) -> OrchestratorStatsSnapshot {
+        OrchestratorStatsSnapshot {
+            queries_processed: self.stats.queries_processed.load(std::sync::atomic::Ordering::Relaxed),
+            creative_queries: self.stats.creative_queries.load(std::sync::atomic::Ordering::Relaxed),
+            logical_queries: self.stats.logical_queries.load(std::sync::atomic::Ordering::Relaxed),
+            hybrid_queries: self.stats.hybrid_queries.load(std::sync::atomic::Ordering::Relaxed),
+        }
     }
 }
 
-/// Extract numerical claims from text for verification.
-/// 
-/// Finds expressions and numbers that can be verified deterministically.
-/// 
-/// # Arguments
-/// 
-/// * `text` - The text to extract claims from
-/// 
-/// # Returns
-/// 
-/// Vector of claim strings (expressions or numbers)
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct OrchestratorStatsSnapshot {
+    pub queries_processed: u64,
+    pub creative_queries: u64,
+    pub logical_queries: u64,
+    pub hybrid_queries: u64,
+}
+
+/// Extract numerical claims from text for verification
 fn extract_claims(text: &str) -> Vec<String> {
-    let re = regex::Regex::new(r"(\d+(?:\.\d+)?)\s*([+\-*/])\s*(\d+(?:\.\d+)?)")
-        .unwrap();
+    use once_cell::sync::Lazy;
     
-    let mut claims = Vec::new();
+    static EXPR_RE: Lazy<regex::Regex> = Lazy::new(|| {
+        regex::Regex::new(r"\d+(?:\.\d+)?(?:\s*[+\-*/]\s*\d+(?:\.\d+)?)+").unwrap()
+    });
     
-    // Extract mathematical expressions
-    for cap in re.captures_iter(text) {
-        if let Some(expr) = cap.get(0) {
-            claims.push(expr.as_str().to_string());
-        }
-    }
+    static NUM_RE: Lazy<regex::Regex> = Lazy::new(|| {
+        regex::Regex::new(r"\d+(?:\.\d+)?").unwrap()
+    });
     
-    // If no expressions found, extract standalone numbers for reference
+    let mut claims: Vec<String> = EXPR_RE.find_iter(text)
+        .map(|m| m.as_str().to_string())
+        .collect();
+    
+    // Also extract simple numbers as potential claims
     if claims.is_empty() {
-        let num_re = regex::Regex::new(r"\d+(?:\.\d+)?").unwrap();
-        claims = num_re
-            .find_iter(text)
+        claims = NUM_RE.find_iter(text)
+            .take(5) // Limit to avoid excessive verification
             .map(|m| m.as_str().to_string())
-            .take(3) // Limit to first 3 numbers
             .collect();
     }
     

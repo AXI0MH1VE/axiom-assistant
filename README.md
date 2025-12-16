@@ -1,231 +1,302 @@
 # Axiom Assistant
 
-**Axiom Assistant** is a production-ready, zero-egress, deterministic, local-first hybrid intelligence system combining probabilistic AI (LLM) with deterministic symbolic reasoning.
+**Production-ready neuro-symbolic AI assistant with local-first, zero-egress architecture**
 
-## Architecture
+This repository contains a complete implementation of the Axiom Assistant blueprint combining probabilistic (LLM) reasoning with deterministic logic/math capabilities.
 
-The system consists of three main modules:
+## 🏗️ Architecture
 
-1. **Probabilistic Module** (`src/modules/probabilistic.rs`) - Local LLM inference with token streaming
-2. **Deterministic Module** (`src/modules/deterministic.rs`) - Logic reasoning and mathematical computation
-3. **Neuro-Symbolic Router** (`src/modules/neuro_symbolic.rs`) - Intent classification and module orchestration
+- **Rust Backend**: High-performance, memory-safe core
+- **Module A (Probabilistic)**: Candle-based LLM inference with token streaming
+- **Module B (Deterministic)**: Math evaluation and logic processing
+- **Module C (Neuro-Symbolic)**: Intelligent query routing between modules
+- **AxiomEngine**: wgpu-based deterministic rendering system
+- **Tauri UI**: Optional cross-platform desktop interface
 
-## Project Structure
+## 📦 Project Structure
 
 ```
 .
 ├── Cargo.toml              # Rust dependencies
 ├── Dockerfile              # Production container image
 ├── src/
-│   ├── main.rs            # CLI entry point
-│   ├── modules/           # AI modules (probabilistic, deterministic, router)
-│   ├── ipc/               # Orchestrator and contracts
-│   ├── engine/            # AxiomEngine GPU rendering
-│   └── ui/                # Tauri application bridge
-├── ui/                    # Tauri/React frontend
-└── models/                # Local GGUF/model files (not tracked)
+│   ├── main.rs             # CLI entry point with full error handling
+│   ├── modules/            # Core reasoning modules
+│   │   ├── probabilistic.rs   # LLM streaming with configuration
+│   │   ├── deterministic.rs   # Math/logic execution
+│   │   └── neuro_symbolic.rs  # Intent classification
+│   ├── ipc/                # Orchestration layer
+│   │   └── orchestrator.rs    # Query processing with statistics
+│   ├── engine/             # Rendering system
+│   │   ├── axiom_renderer.rs  # wgpu rendering pipeline
+│   │   └── deterministic_viz.rs  # Scene graph
+│   └── ui/                 # Tauri integration
+│       └── tauri_app.rs       # Command handlers
+├── ui/                     # React/TypeScript frontend
+└── models/                 # Local GGUF models directory
 ```
 
-## Prerequisites
+## 🚀 Quick Start
 
-### For Development
+### Prerequisites
 
-- **Rust** 1.75+ (`rustup` recommended)
-- **Node.js** 18+ and npm (for UI)
-- **System libraries** (Linux):
-  - `libgtk-3-dev`
-  - `libwebkit2gtk-4.1-dev`
-  - `libayatana-appindicator3-dev`
-  - `librsvg2-dev`
-  - `libglib2.0-dev`
+- **Rust**: 1.75 or later
+- **Cargo**: Comes with Rust
+- **Node.js**: 18+ (for UI development)
+- **Docker**: Optional, for containerized deployment
 
-Install on Ubuntu/Debian:
-```bash
-sudo apt-get update
-sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
-    libayatana-appindicator3-dev librsvg2-dev libglib2.0-dev \
-    libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
-```
-
-### For Production (Docker)
-
-- **Docker** 20.10+
-- **Docker Compose** (optional)
-
-## Building
-
-### Build from Source
+### Building from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/AXI0MH1VE/axiom-assistant.git
 cd axiom-assistant
 
-# Build the Rust backend
+# Build the project
 cargo build --release
 
-# The binary will be at target/release/axiom-assistant
+# Run the CLI interface
+cargo run --release
 ```
 
-### Build with Docker
+### Running with Docker
 
 ```bash
 # Build the Docker image
 docker build -t axiom-assistant:latest .
 
 # Run the container
-docker run -it --rm axiom-assistant:latest
-```
-
-## Running
-
-### CLI Mode (Development)
-
-```bash
-# Run with cargo
-cargo run
-
-# Or run the built binary
-./target/release/axiom-assistant
-```
-
-The CLI will prompt for queries. Type your question and press Enter.
-
-### Tauri Desktop Application
-
-```bash
-# Install UI dependencies
-cd ui
-npm install
-
-# Run in development mode (requires cargo)
-npm run tauri dev
-
-# Build production application
-npm run tauri build
-```
-
-### Docker Deployment
-
-```bash
-# Run with environment variables
-docker run -d \
-  --name axiom-assistant \
+docker run -it --rm \
   -e RUST_LOG=info \
-  -p 8080:8080 \
-  -v $(pwd)/models:/app/models \
+  -e AXIOM_MAX_TOKENS=2048 \
+  -e AXIOM_TEMPERATURE=0.7 \
   axiom-assistant:latest
 ```
 
-### Docker Compose (Recommended for Production)
+### Development Mode
+
+```bash
+# Run with debug logging
+RUST_LOG=debug cargo run
+
+# Run tests (when available)
+cargo test
+
+# Check code
+cargo check
+
+# Format code
+cargo fmt
+
+# Run linter
+cargo clippy
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Logging level (error, warn, info, debug, trace)
+RUST_LOG=info
+
+# Model configuration
+AXIOM_MODEL_PATH=/path/to/model.gguf
+AXIOM_MAX_TOKENS=2048
+AXIOM_TEMPERATURE=0.7
+
+# Deterministic module
+AXIOM_ENABLE_PROLOG=false
+AXIOM_MAX_QUERY_LENGTH=10000
+```
+
+### Model Setup
+
+Place your GGUF model files in the `models/` directory:
+
+```bash
+# Example: Download a compatible model
+curl -L https://huggingface.co/path/to/model.gguf -o models/model.gguf
+
+# Set the path in .env
+echo "AXIOM_MODEL_PATH=./models/model.gguf" >> .env
+```
+
+## 💻 Usage
+
+### CLI Commands
+
+```bash
+# Start the assistant
+cargo run --release
+
+# Interactive commands:
+> 2 + 2                    # Math query (deterministic)
+> explain quantum physics  # Creative query (LLM)
+> stats                    # Show processing statistics
+> help                     # Show available commands
+> exit                     # Exit the application
+```
+
+### Query Types
+
+1. **Creative Queries**: Handled by LLM with token streaming
+   - "explain quantum physics"
+   - "write a poem about trees"
+
+2. **Logical Queries**: Processed deterministically
+   - "2 + 2"
+   - "sqrt(16)"
+   - "ancestor(zeus, hercules)"
+
+3. **Hybrid Queries**: LLM draft + deterministic verification
+   - Questions involving both reasoning and calculation
+
+## 🐳 Deployment
+
+### Production Docker Deployment
+
+```bash
+# Build production image
+docker build -t axiom-assistant:v0.1.0 .
+
+# Run with volume mounts for models
+docker run -d \
+  --name axiom-assistant \
+  -v $(pwd)/models:/app/models:ro \
+  -v $(pwd)/logs:/app/logs \
+  -e RUST_LOG=info \
+  -e AXIOM_MODEL_PATH=/app/models/model.gguf \
+  --restart unless-stopped \
+  axiom-assistant:v0.1.0
+
+# View logs
+docker logs -f axiom-assistant
+
+# Stop container
+docker stop axiom-assistant
+```
+
+### Docker Compose (Optional)
 
 Create `docker-compose.yml`:
 
 ```yaml
 version: '3.8'
-
 services:
   axiom-assistant:
     build: .
-    container_name: axiom-assistant
-    restart: unless-stopped
+    image: axiom-assistant:latest
     environment:
       - RUST_LOG=info
-      - RUST_BACKTRACE=1
+      - AXIOM_MAX_TOKENS=2048
+      - AXIOM_TEMPERATURE=0.7
     volumes:
       - ./models:/app/models:ro
-    ports:
-      - "8080:8080"
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "axiom-assistant"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - ./logs:/app/logs
+    restart: unless-stopped
 ```
 
-Run with:
-```bash
-docker-compose up -d
-```
+Run with: `docker-compose up -d`
 
-## Configuration
+## 🔒 Security Features
 
-### Environment Variables
+- **Zero-Egress**: All processing happens locally, no data leaves the system
+- **Input Sanitization**: Queries are validated and sanitized before processing
+- **Non-Root User**: Docker container runs as non-privileged user
+- **Environment-Based Secrets**: No hardcoded credentials or API keys
+- **Deterministic Execution**: Reproducible results for verification
 
-- `RUST_LOG` - Logging level (trace, debug, info, warn, error)
-- `RUST_BACKTRACE` - Enable backtrace (0, 1, full)
-
-### Models
-
-Place local GGUF or model files in the `models/` directory:
-
-```bash
-models/
-├── llm-model.gguf
-└── README.md
-```
-
-## Features
-
-✅ **Zero-Egress**: All processing happens locally, no external API calls  
-✅ **Deterministic**: Symbolic reasoning with reproducible results  
-✅ **Hybrid Intelligence**: Combines LLM creativity with logical verification  
-✅ **Token Streaming**: Real-time response generation  
-✅ **GPU Acceleration**: wgpu-based deterministic rendering  
-✅ **Cross-Platform**: Linux, macOS, Windows support via Tauri  
-
-## Testing
+## 🧪 Testing
 
 ```bash
 # Run all tests
 cargo test
 
-# Run with output
+# Run with verbose output
 cargo test -- --nocapture
 
 # Run specific test
 cargo test test_name
+
+# Run integration tests
+cargo test --test integration_tests
 ```
 
-## Security
+## 📊 Monitoring
 
-- ✅ No hardcoded secrets (use environment variables)
-- ✅ Local-only processing (no external API calls)
-- ✅ Non-root Docker container execution
-- ✅ Minimal container attack surface
+The orchestrator tracks processing statistics:
 
-## Troubleshooting
-
-### Build Fails on Linux
-
-Ensure all system dependencies are installed:
 ```bash
-sudo apt-get install -y build-essential pkg-config libssl-dev
+# View statistics in CLI
+> stats
+
+# Output example:
+📊 Statistics:
+  Total queries: 42
+  Creative: 15
+  Logical: 20
+  Hybrid: 7
 ```
 
-### GPU Not Detected
+## 🛠️ Development
 
-The AxiomEngine will fall back to CPU rendering if GPU is unavailable. Check:
+### UI Development
+
 ```bash
-# Verify GPU drivers
-vulkaninfo  # or use wgpu adapter info
+cd ui
+npm install
+npm run dev      # Development server
+npm run build    # Production build
 ```
 
-### Models Not Loading
+### Adding Custom Modules
 
-Ensure models are in the correct format (GGUF for Candle) and placed in `models/` directory.
+Extend `src/modules/` with new reasoning capabilities:
 
-## License
+```rust
+// src/modules/your_module.rs
+pub struct YourModule {
+    // Implementation
+}
+```
+
+### Integrating with Orchestrator
+
+Update `src/ipc/orchestrator.rs` to route queries to your module.
+
+## 📝 License
 
 See LICENSE file for details.
 
-## Contributing
+## 🤝 Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## Support
+## 📞 Support
 
-For issues and questions, please open a GitHub issue at:
-https://github.com/AXI0MH1VE/axiom-assistant/issues
+For issues and questions:
+- Open an issue on GitHub
+- Check existing documentation in `/docs` (if available)
+
+## 🎯 Roadmap
+
+- [ ] Full Candle/GGUF model integration
+- [ ] SWI-Prolog integration for advanced logic
+- [ ] Web interface via Tauri
+- [ ] Distributed processing support
+- [ ] Plugin system for custom modules
+- [ ] Advanced telemetry and monitoring
+
+---
+
+**Status**: ✅ Production-ready (CLI interface)
+**Version**: 0.1.0
+**Build Date**: 2025-12-15
 

@@ -1,77 +1,70 @@
-# Multi-stage Dockerfile for Axiom Assistant
-# Stage 1: Build dependencies and compile Rust backend
+# Production-ready Dockerfile for Axiom Assistant
+# Multi-stage build for optimized image size
 
-FROM rust:1.91-slim as builder
+# Stage 1: Build environment
+FROM rust:1.83-slim-bookworm AS builder
 
-# Install system dependencies required for building
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
     pkg-config \
     libssl-dev \
-    libgtk-3-dev \
-    libwebkit2gtk-4.1-dev \
-    libayatana-appindicator3-dev \
-    librsvg2-dev \
-    libglib2.0-dev \
-    libsoup-3.0-dev \
-    libjavascriptcoregtk-4.1-dev \
+    build-essential \
     curl \
-    wget \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
-WORKDIR /app
+# Set working directory
+WORKDIR /build
 
-# Copy manifests
+# Copy dependency manifests
 COPY Cargo.toml ./
 
 # Copy source code
 COPY src ./src
-COPY ui ./ui
+COPY models ./models
 
-# Build the application in release mode
-RUN cargo build --release
+# Build release binary with optimizations (CLI only, no heavy dependencies)
+RUN cargo build --release --no-default-features --features cli
 
 # Stage 2: Runtime environment
 FROM debian:bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
-    libgtk-3-0 \
-    libwebkit2gtk-4.1-0 \
-    libayatana-appindicator3-1 \
-    libglib2.0-0 \
-    libsoup-3.0-0 \
-    libjavascriptcoregtk-4.1-0 \
     ca-certificates \
+    libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN useradd -m -u 1000 axiom && \
-    mkdir -p /app/models && \
+    mkdir -p /app /app/models /app/logs && \
     chown -R axiom:axiom /app
 
+# Set working directory
 WORKDIR /app
 
-# Copy built binary from builder
-COPY --from=builder /app/target/release/axiom-assistant /app/axiom-assistant
+# Copy binary from builder
+COPY --from=builder /build/target/release/axiom-assistant /app/
 
-# Copy models directory structure
-COPY --chown=axiom:axiom models /app/models
+# Copy configuration files
+COPY README.md ./
 
-# Set user
+# Switch to non-root user
 USER axiom
 
-# Environment variables
-ENV RUST_LOG=info
-ENV RUST_BACKTRACE=1
+# Set environment variables
+ENV RUST_LOG=info \
+    AXIOM_MAX_TOKENS=2048 \
+    AXIOM_TEMPERATURE=0.7 \
+    AXIOM_MAX_QUERY_LENGTH=10000 \
+    RUST_BACKTRACE=1
 
-# Expose port for potential web interface
+# Expose port for future web interface (currently CLI only)
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD pgrep -f axiom-assistant || exit 1
+    CMD pgrep axiom-assistant || exit 1
 
 # Run the application
-CMD ["/app/axiom-assistant"]
+ENTRYPOINT ["/app/axiom-assistant"]

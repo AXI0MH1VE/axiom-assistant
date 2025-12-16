@@ -1,6 +1,8 @@
 # Rust build artifacts
 /target/
 Cargo.lock
+**/*.rs.bk
+*.pdb
 
 # IDE files
 .vscode/
@@ -9,25 +11,47 @@ Cargo.lock
 *.swo
 *~
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Node modules (for UI)
-node_modules/
-dist/
-
 # Environment variables
 .env
 .env.local
 
-# Models directory (large binary files)
-models/*.gguf
-models/*.bin
-
 # Logs
 *.log
+logs/
+*.log.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# UI
+ui/node_modules/
+ui/dist/
+ui/.next/
+ui/out/
+ui/build/
+ui/.cache/
+ui/coverage/
+node_modules/
+
+# Models directory (large binary files)
+models/*.bin
+models/*.gguf
+models/*.safetensors
 
 # Temporary files
-/tmp/
+tmp/
+temp/
 *.tmp
+/tmp/
+
+# Test artifacts
+*.profdata
+*.profraw
+
+# Backup files
+*.bak
